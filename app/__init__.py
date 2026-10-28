@@ -1,6 +1,7 @@
 """Flask application factory for Smoothie AI."""
 
 import logging
+import os
 import time
 
 from flask import Flask, jsonify, request
@@ -111,9 +112,12 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = resolve_database_url(
-        app.config.get("SQLALCHEMY_DATABASE_URI")
+    database_url = (
+        os.environ.get("DATABASE_URL")
+        or app.config.get("SQLALCHEMY_DATABASE_URI")
+        or ""
     )
+    app.config["SQLALCHEMY_DATABASE_URI"] = resolve_database_url(database_url)
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = build_engine_options(
         app.config["SQLALCHEMY_DATABASE_URI"]
     )
@@ -161,3 +165,6 @@ def create_app():
     _register_error_handlers(app)
 
     return app
+
+
+app = create_app()

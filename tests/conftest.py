@@ -20,7 +20,7 @@ os.environ.setdefault("CORS_ORIGINS", "http://localhost:5173")
 
 @pytest.fixture()
 def app():
-    from app import create_app
+    from app import create_app, db as _db
 
     db_fd, db_path = tempfile.mkstemp(suffix=".db")
     os.close(db_fd)
@@ -30,10 +30,11 @@ def app():
     application.config["TESTING"] = True
     application.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
     with application.app_context():
-        from app import db as _db
-
         _db.create_all()
     yield application
+    with application.app_context():
+        _db.session.remove()
+        _db.drop_all()
     os.unlink(db_path)
 
 

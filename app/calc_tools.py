@@ -64,7 +64,7 @@ def _eval_node(node: ast.AST) -> float:
         if isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
             return float(node.value)
         raise CalculationError("Unsupported constant value")
-    if isinstance(node, ast.Num):  # pragma: no cover - Python < 3.8 compatibility
+    if hasattr(ast, "Num") and isinstance(node, ast.Num):  # pragma: no cover - Python < 3.8 compatibility
         return float(node.n)
     if isinstance(node, ast.BinOp):
         left = _eval_node(node.left)
