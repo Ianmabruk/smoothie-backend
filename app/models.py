@@ -1,8 +1,18 @@
 """Database models for Smoothie AI."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from app import db
+
+
+def _utcnow() -> datetime:
+    """Return a timezone-aware UTC timestamp.
+
+    ``datetime.utcnow()`` is deprecated in Python 3.12+ and removed in 3.14+,
+    so all models use ``datetime.now(UTC)`` instead. SQLAlchemy stores these as
+    naive UTC datetimes, which matches the previous behaviour.
+    """
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class User(db.Model):
@@ -12,7 +22,7 @@ class User(db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
 
     conversations = db.relationship(
         "Conversation", back_populates="user", cascade="all, delete-orphan"
@@ -43,8 +53,8 @@ class Conversation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     title = db.Column(db.String(150), default="New chat")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
+    updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
 
     user = db.relationship("User", back_populates="conversations")
     messages = db.relationship(
@@ -71,7 +81,7 @@ class Message(db.Model):
     )
     role = db.Column(db.String(20), default="user")
     content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
 
     conversation = db.relationship("Conversation", back_populates="messages")
 
