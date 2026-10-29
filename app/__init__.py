@@ -7,14 +7,16 @@ import time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from config import (
     Config,
+    DEFAULT_DEV_ORIGINS,
     DEV_JWT_SECRET_KEY,
     DEV_SECRET_KEY,
     build_engine_options,
@@ -23,6 +25,7 @@ from config import (
 )
 
 db = SQLAlchemy()
+migrate = Migrate()
 jwt = JWTManager()
 
 logger = logging.getLogger("smoothieai.api")
@@ -45,7 +48,7 @@ def _validate_production_secrets(app):
 
 
 def _initialize_database(app):
-    if not app.config.get("AUTO_CREATE_TABLES", True):
+    if not app.config.get("AUTO_CREATE_TABLES", False):
         return
     attempts = 3
     for attempt in range(1, attempts + 1):
@@ -126,10 +129,18 @@ def create_app():
     if app.config.get("TRUST_PROXY", True):
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
+    _cors_origins = [
+        o.strip() for o in (app.config.get("CORS_ORIGINS") or "").split(",") if o.strip()
+    ]
+    if not _cors_origins:
+        _cors_origins = list(DEFAULT_DEV_ORIGINS)
+    _supports_credentials = bool(
+        app.config.get("CORS_SUPPORTS_CREDENTIALS", True) and _cors_origins
+    )
     CORS(
         app,
-        resources={r"/api/*": {"origins": "*"}},
-        supports_credentials=True,
+        resources={r"/api/*": {"origins": _cors_origins}},
+        supports_credentials=_supports_credentials,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With", "X-Request-ID"],
         expose_headers=["Content-Type", "X-Request-ID"],
@@ -145,6 +156,7 @@ def create_app():
         return response
 
     db.init_app(app)
+    migrate.init_app(app, db)
     jwt.init_app(app)
 
     from app import models  # noqa: F401
