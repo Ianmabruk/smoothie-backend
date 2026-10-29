@@ -1,0 +1,50 @@
+# Render Blueprint - Smoothie AI backend (native Python runtime, no Docker)
+#
+# This service runs the Flask backend under Render's native Python runtime.
+# It does NOT use Docker: there is no Dockerfile, no image build, and no
+# container registry involved in the build or start workflow.
+#
+# Python version:
+#   Render's native Python runtime defaults to 3.14.8 for services created
+#   on/after 2026-10-12. The version is pinned explicitly here and in
+#   .python-version + runtime.txt so the deployed interpreter matches the
+#   local Python 3.14.8 used for testing.
+
+services:
+  - type: web
+    name: smoothie-ai-api
+    runtime: python
+    # Native Python runtime - never set to docker.
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    healthCheckPath: /health/ready
+    envVars:
+      # Python 3.14.8 - matches .python-version and runtime.txt.
+      - key: PYTHON_VERSION
+        value: 3.14.8
+      # Required secrets - set these in the Render dashboard (never commit real values).
+      - key: SECRET_KEY
+      - key: JWT_SECRET_KEY
+      # Neon PostgreSQL connection string (server-side only).
+      - key: DATABASE_URL
+      # NVIDIA NIM (server-side only).
+      - key: AI_PROVIDER
+        value: nvidia
+      - key: NVIDIA_API_KEY
+      - key: NVIDIA_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: NVIDIA_MODEL
+      # Optional behaviour overrides.
+      - key: AUTO_CREATE_TABLES
+        value: "False"
+      - key: CORS_ORIGINS
+      - key: CORS_SUPPORTS_CREDENTIALS
+        value: "True"
+      - key: TRUST_PROXY
+        value: "True"
+      - key: AI_REQUEST_TIMEOUT_SECONDS
+        value: "45"
+      - key: AI_MAX_RETRIES
+        value: "2"
+      - key: AI_RETRY_BACKOFF_SECONDS
+        value: "2"
