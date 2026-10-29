@@ -43,7 +43,20 @@ def _env_int(name, default):
 
 
 def _normalize_postgresql_url(url):
+    """Normalize a Neon PostgreSQL URL for the installed driver.
+
+    The project installs ``psycopg`` (v3) via ``psycopg[binary]`` and does
+    NOT install ``psycopg2``. SQLAlchemy resolves a bare ``postgresql://`` URL
+    to the psycopg2 dialect by default, which fails at startup with
+    ``ModuleNotFoundError: No module named 'psycopg2'``. Every PostgreSQL URL
+    is therefore rewritten to the explicit ``postgresql+psycopg://`` driver so
+    the v3 driver is always selected, regardless of how the connection string
+    was originally formatted by Neon or the operator.
+    """
     parsed = urlsplit(url)
+    scheme = parsed.scheme
+    if scheme in ("postgresql", "postgres"):
+        parsed = parsed._replace(scheme="postgresql+psycopg")
     query = dict(parse_qsl(parsed.query, keep_blank_values=True))
     query.setdefault("sslmode", "require")
     query.setdefault("connect_timeout", "10")
@@ -86,7 +99,16 @@ def resolve_database_url(raw_url=None):
             "Neon PostgreSQL via DATABASE_URL and will refuse to start with a local SQLite URL."
         )
 
-    if url.startswith(("postgresql://", "postgresql+psycopg://", "postgresql+psycopg2://")):
+    if url.startswith(
+        (
+            "postgresql://",
+            "postgresql+psycopg://",
+            "postgresql+psycopg2://",
+            "postgres://",
+            "postgres+psycopg://",
+            "postgres+psycopg2://",
+        )
+    ):
         return _normalize_postgresql_url(url)
 
     return url
@@ -109,6 +131,9 @@ def build_engine_options(database_uri):
             "max_overflow": 10,
             "pool_timeout": 30,
             "pool_recycle": 280,
+            # sslmode/connect_timeout are accepted by both the psycopg (v3)
+            # and psycopg2 DBAPIs, so these connect_args work regardless of
+            # which PostgreSQL dialect the normalized URL selects.
             "connect_args": {"connect_timeout": 10, "sslmode": "require"},
         }
     )
