@@ -16,7 +16,12 @@ services:
     runtime: python
     # Native Python runtime - never set to docker.
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    # Bind to BOTH the port Render injects ($PORT, normally 10000 for the
+    # native Python runtime) and the legacy port 5000 that older dashboard
+    # configurations still scan for. gunicorn accepts repeated --bind flags,
+    # so the service answers on whichever port Render probes, regardless of
+    # how the service's PORT setting was last configured.
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --bind 0.0.0.0:5000 --workers 1 --timeout 120
     healthCheckPath: /health/ready
     envVars:
       # Python 3.14.8 - matches .python-version and runtime.txt.
