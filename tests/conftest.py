@@ -6,6 +6,7 @@ import tempfile
 import pytest
 
 os.environ.setdefault("FLASK_ENV", "testing")
+os.environ.setdefault("TESTING", "1")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-key")
 os.environ.setdefault("AI_PROVIDER", "nvidia")

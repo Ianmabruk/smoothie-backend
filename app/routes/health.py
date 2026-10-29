@@ -1,8 +1,9 @@
 """Health and provider-status routes for Smoothie AI."""
 
 from flask import Blueprint, jsonify
+from sqlalchemy import text
 
-from app import ai_service
+from app import ai_service, db
 
 bp = Blueprint("health", __name__)
 
@@ -14,7 +15,14 @@ def health():
 
 @bp.route("/health/ready", methods=["GET"])
 def ready():
-    return jsonify({"status": "ok", "service": "Smoothie AI API", "ai_provider": "nvidia"})
+    try:
+        db.session.execute(text("SELECT 1"))
+        db.session.commit()
+        ready_state = {"status": "ok", "service": "Smoothie AI API", "ai_provider": "nvidia", "database": "ready"}
+    except Exception:
+        ready_state = {"status": "error", "service": "Smoothie AI API", "ai_provider": "nvidia", "database": "unavailable"}
+        return jsonify(ready_state), 503
+    return jsonify(ready_state)
 
 
 @bp.route("/api/ai/provider-status", methods=["GET"])
