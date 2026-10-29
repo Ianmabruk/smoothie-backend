@@ -1,0 +1,39 @@
+# Git and VCS
+.git
+.gitignore
+.github
+
+# Python envs and caches
+.venv
+.venv314
+venv
+__pycache__
+.pytest_cache
+*.pyc
+*.pyo
+*.pyd
+
+# Local runtime data and secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+instance/
+*.db
+*.sqlite
+*.sqlite3
+
+# Editor and OS noise
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Local build output
+build/
+coverage/
+*.log
+
+# Node artifacts (not needed for backend image)
+node_modules/
